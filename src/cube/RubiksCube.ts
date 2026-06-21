@@ -14,11 +14,13 @@ import {
 
 const SPACING = 1.0;
 const BODY_SIZE = 0.96;
-const STICKER_SIZE = 0.86;
-const STICKER_CORNER_R = 0.14; // 贴纸圆角半径
-const STICKER_OFFSET = BODY_SIZE / 2 + 0.004;
+const BODY_RADIUS = 0.05; // 魔方体边缘圆角半径（原 0.09 太大，挤压平面区域使贴纸缩小、缝隙变宽）
 const ROUND = 4;
-const BODY_RADIUS = 0.09;
+// 贴纸贴齐魔方体平面区域（半边 = BODY_SIZE/2 - BODY_RADIUS），为边缘圆角预留距离；
+// 用表达式联动 BODY_RADIUS，调圆角时贴纸自动跟随，不会悬空产生厚度感
+const STICKER_SIZE = BODY_SIZE - 2 * BODY_RADIUS;
+const STICKER_CORNER_R = 0.14; // 贴纸圆角半径
+const STICKER_OFFSET = BODY_SIZE / 2 + 0.001; // 贴纸凸出魔方体表面的距离，越小越薄（防 z-fighting）
 
 export interface Sticker {
   mesh: THREE.Mesh;
@@ -39,7 +41,7 @@ function getStripeTexture(): THREE.Texture {
   const ctx = c.getContext('2d')!;
   ctx.fillStyle = '#e6e9ee'; // 浅灰底
   ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = '#767c87'; // 深灰斜条
+  ctx.fillStyle = '#1f2024'; // 黑色斜条
   const pitch = 26;
   const w = 13;
   for (let i = -size; i < size * 2; i += pitch) {
@@ -73,8 +75,8 @@ export class RubiksCube {
     this.bodyGeo = new RoundedBoxGeometry(BODY_SIZE, BODY_SIZE, BODY_SIZE, ROUND, BODY_RADIUS);
     this.bodyMat = new THREE.MeshStandardMaterial({
       color: 0x0a0a0c,
-      roughness: 0.85,
-      metalness: 0.05,
+      roughness: 0.35, // 低粗糙度，配合 RoomEnvironment 产生清晰的黑色塑料高光
+      metalness: 0.1,
     });
     this.rebuild();
   }
@@ -113,8 +115,9 @@ export class RubiksCube {
       const { g1, g2 } = gridCoords(n, x, y, z);
       const mesh = new THREE.Mesh(buildStickerGeometry(n, g1, g2), this.createMaterial(GRAY_ID));
       mesh.position.copy(n.clone().multiplyScalar(STICKER_OFFSET));
-      mesh.castShadow = true;
+      mesh.castShadow = false; // 贴纸不投影，消除凸起阴影带来的"厚度"视觉
       mesh.receiveShadow = true;
+      mesh.visible = false; // 未填色时不显示贴纸，露出黑色底座（raycaster 仍可命中以供涂色）
       group.add(mesh);
 
       const sticker: Sticker = {
@@ -145,8 +148,11 @@ export class RubiksCube {
           })
         : new THREE.MeshStandardMaterial({
             color: COLOR_HEX[colorId],
-            roughness: 0.92,
+            emissive: COLOR_HEX[colorId], // 自发光增强颜色鲜艳度，不引入高光
+            emissiveIntensity: 0.18,
+            roughness: 0.92, // 高粗糙度保持哑光、无高光斑点
             metalness: 0.0,
+            envMapIntensity: 0.35, // 减弱灰白环境反射对颜色的稀释
             side: THREE.DoubleSide,
           });
     this.matCache.set(colorId, m);
@@ -156,6 +162,7 @@ export class RubiksCube {
   setColor(sticker: Sticker, colorId: number): void {
     sticker.colorId = colorId;
     sticker.mesh.material = this.createMaterial(colorId);
+    sticker.mesh.visible = colorId !== GRAY_ID; // 未填色隐藏贴纸，填色后显示
   }
 
   isAnimating(): boolean {
