@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>魔方助手 · 3D 解魔方引导</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="stage"></div>
+
+      <!-- 提示条 -->
+      <div id="hint" class="hint">选中底部颜色，点击魔方贴纸上色（右键擦除）。用上/下/左/右箭头旋转查看各面。</div>
+
+      <!-- 上下左右浮动箭头 -->
+      <div id="face-nav">
+        <button class="face-btn fu" data-dir="up" title="向上旋转一面">▲</button>
+        <button class="face-btn fd" data-dir="down" title="向下旋转一面">▼</button>
+        <button class="face-btn fl" data-dir="left" title="向左旋转一面">◀</button>
+        <button class="face-btn fr" data-dir="right" title="向右旋转一面">▶</button>
+      </div>
+
+      <!-- 底部操作栏：左侧名称固定，右侧按状态切换 -->
+      <footer id="bar">
+        <div class="bar-brand">
+          <span class="logo">▣</span>
+          <span class="title">魔方助手</span>
+        </div>
+
+        <!-- 录入态 -->
+        <div id="bar-idle" class="bar-section">
+          <div id="palette" class="palette"></div>
+          <span id="solve-status" class="status">正在初始化求解引擎</span>
+          <div class="bar-actions">
+            <button id="btn-reset" title="清空为全灰，重新录入">重置</button>
+            <button id="btn-scramble" title="随机打乱（演示用）">打乱</button>
+            <button id="btn-solve" class="primary" disabled>准备求解器中…</button>
+          </div>
+        </div>
+
+        <!-- 引导态 -->
+        <div id="bar-guide" class="bar-section" hidden>
+          <div class="guide-info">
+            <span id="guide-move" class="guide-move">—</span>
+            <span id="guide-desc" class="guide-desc">准备开始</span>
+            <span id="guide-progress" class="guide-progress">第 0 / 0 步</span>
+          </div>
+          <div class="bar-actions">
+            <button id="btn-prev" title="上一步">◀</button>
+            <button id="btn-next" class="primary" title="下一步">下一步 ▶</button>
+            <button id="btn-auto" title="自动播放">自动</button>
+          </div>
+        </div>
+      </footer>
+
+      <!-- 完成时的彩带喷发 -->
+      <div id="confetti"></div>
+
+      <!-- 加载遮罩 -->
+      <div id="overlay" class="overlay">
+        <div class="spinner"></div>
+        <div id="overlay-text">正在初始化求解引擎…</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
