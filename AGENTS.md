@@ -73,8 +73,24 @@ cubejs 默认的 22——步数更少、耗时几乎不变；改到 20 会接近
 
 ## 视角控制（易踩的坑）
 
-**相机固定在 +Z 轴**（`(0,0,7.5)`，正对前面），始终不动；旋转的是魔方根节点
-`cube.root`。底部灯光含一盏下方补光照亮 -Y 面，别去掉。
+**相机始终在 +Z 轴上、正对前面、不旋转**；但其**距离自适应**——
+`CubeScene.computeFitDistance()` 按视口比例计算（桌面宽屏≈7.5，移动端竖屏后撤到
+~12，让魔方连同层动画途经的 45° 边视图都能完整入镜），再乘滚轮缩放倍率
+`userZoom`；**别再硬编码 7.5**。`applyFitDistance()` 在构造、`handleResize` 时调用。
+底部灯光含一盏下方补光照亮 -Y 面，别去掉。
+
+**魔方根节点 `cube.root` 既承担视角旋转（quaternion），也会做 `position.y` 垂直
+平移**（`applyVerticalCentering`）：让魔方在屏幕上垂直居中于「顶部 `.hint` ↔
+底部 `#bar`」之间的可用区域，而不是原始视口几何中心（否则在矮底栏的手机上会贴
+底）。地面（`this.ground`）随之平移以保留阴影相对关系。`setViewTarget()` 与
+`handleResize` 会重新应用该平移。
+
+- **`#face-nav`（上下左右翻转箭头）的上下边界由 `applyVerticalCentering` 用内联
+  样式动态对齐到可用区域**，内部 `top:50%` 即落在魔方中心，四个箭头随魔方一起
+  移动——别用纯 CSS 重新定位它们。
+- **状态读取（`findSticker`/`extractFaceletString`）用的是 cubie 的局部
+  `position`/`quaternion`**（相对根节点），所以根节点的 `position.y` 平移不影响
+  状态读取；改动时不要误改成世界坐标。
 
 **所有视角旋转都累加到"意图目标" `targetQuat`，再从当前朝向 slerp 追向它**
 （`CubeScene.animateToTarget`）。**绝不要**基于"动画中途的当前四元数"累加——
