@@ -190,9 +190,46 @@ button.primary:hover:not(:disabled) {
   font-size: 18px;
 }
 
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
 .bar-brand .title {
   font-weight: 600;
   letter-spacing: 1px;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.brand-sub:hover {
+  color: var(--accent-2);
+  text-decoration: underline;
+}
+
+/* 署名链接 */
+.credit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.15s;
+  z-index: 11;
+}
+
+.credit:hover {
+  color: var(--accent-2);
+  text-decoration: underline;
 }
 
 .bar-section {
@@ -360,7 +397,7 @@ button.primary:hover:not(:disabled) {
 }
 
 @media (max-width: 720px) {
-  .bar-brand .title {
+  .bar-brand .brand-text {
     display: none;
   }
   .bar-section {
