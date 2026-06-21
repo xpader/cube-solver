@@ -111,3 +111,13 @@ cubejs 默认的 22——步数更少、耗时几乎不变；改到 20 会接近
 `npm` 是 `.cmd` 批处理，因此 `Start-Process -FilePath "npm" ...` 会失败。若要
 后台启动开发服务器，请直接运行 `node node_modules/vite/bin/vite.js`。在普通
 终端里 `npm run dev` 不受影响。
+
+## 移动端 / iOS（易踩的坑）
+
+**绝不要用 `100vh` 给 `#app` 等顶层容器定高。** iOS Safari 的 `100vh` 是「最大
+可能视口高度」（地址栏隐藏时），当地址栏可见时实际可见区比它矮一截，
+`#bar`（`position:absolute; bottom:…`）会被地址栏/工具栏遮住，且 `body` 是
+`overflow:hidden` 无法拖上来。`#app` 的高度由 `main.ts` 的 `syncAppHeight()`
+注入的 CSS 变量 `--app-h`（取 `visualViewport.height`，回退 `innerHeight`）驱动，
+随地址栏显隐动态更新。新增任何钉在视口边缘的固定元素时，都要基于 `#app`
+（已含 `--app-h`）定位，别另起 `100vh`/`100dvh`。

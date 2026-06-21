@@ -31,7 +31,9 @@ body {
 #app {
   position: relative;
   width: 100vw;
-  height: 100vh;
+  /* iOS Safari 的 100vh 含地址栏，会把底部操作栏挤出可见区。
+     改用 JS 注入的真实可见视口高度（visualViewport/innerHeight），100vh 仅为兜底。 */
+  height: var(--app-h, 100vh);
 }
 
 #stage {

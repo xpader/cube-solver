@@ -14,6 +14,19 @@ import {
   moveDescription,
 } from './cube/notation';
 
+// iOS Safari 的 100vh 含地址栏/工具栏，会把底部操作栏挤出可见区。
+// 用真实可见视口高度（visualViewport 优先，其次 innerHeight）驱动 #app 高度。
+function syncAppHeight(): void {
+  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--app-h', `${h}px`);
+}
+syncAppHeight();
+window.addEventListener('resize', syncAppHeight);
+window.addEventListener('orientationchange', syncAppHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', syncAppHeight);
+}
+
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 
 const stage = $('stage');
