@@ -29,6 +29,10 @@ export class CubeScene {
   private viewAnim = 0;
   /** 意图目标朝向：每次点击只累加到此，动画始终追向它，避免连点漂移。 */
   private targetQuat = new THREE.Quaternion();
+  /** 用户滚轮缩放倍率（相对"自适应满屏"距离）；窗口尺寸变化时保留。 */
+  private userZoom = 1;
+  /** 地面（随魔方垂直居中一起平移，保持阴影相对关系）。 */
+  private ground?: THREE.Mesh;
 
   /** 单击（非拖拽）时触发，命中贴纸则回传贴纸对象。 */
   onPick: ((sticker: THREE.Object3D | null) => void) | null = null;
@@ -56,8 +60,8 @@ export class CubeScene {
       0.1,
       100,
     );
-    this.camera.position.set(0, 0, 7.5);
     this.camera.lookAt(0, 0, 0);
+    this.applyFitDistance(); // 沿 +Z 自适应满屏（移动端缩小、桌面端≈7.5）
 
     this.setupLights();
     this.setupEnvironment();
@@ -117,6 +121,7 @@ export class CubeScene {
     ground.position.y = -2.1;
     ground.receiveShadow = true;
     this.scene.add(ground);
+    this.ground = ground;
   }
 
   setPickables(objs: THREE.Object3D[]): void {
@@ -127,6 +132,7 @@ export class CubeScene {
   setViewTarget(obj: THREE.Object3D): void {
     this.viewTarget = obj;
     this.targetQuat.copy(obj.quaternion);
+    this.applyVerticalCentering();
   }
 
   add(obj: THREE.Object3D): void {
@@ -259,9 +265,8 @@ export class CubeScene {
       (e) => {
         e.preventDefault();
         const factor = Math.exp(e.deltaY * 0.0012);
-        const dist = this.camera.position.length() * factor;
-        const clamped = Math.max(3.5, Math.min(16, dist));
-        this.camera.position.setLength(clamped);
+        this.userZoom = Math.max(0.5, Math.min(2.0, this.userZoom * factor));
+        this.applyFitDistance();
       },
       { passive: false },
     );
@@ -286,7 +291,57 @@ export class CubeScene {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    this.applyFitDistance();
+    this.applyVerticalCentering();
   };
+
+  /** 根据视口比例计算让魔方完整可见所需的相机距离（沿 +Z，不旋转视角）。 */
+  private computeFitDistance(): number {
+    const parent = this.renderer.domElement.parentElement;
+    const aspect =
+      parent && parent.clientHeight > 0 ? parent.clientWidth / parent.clientHeight : 1;
+    const halfTan = Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2);
+    // 魔方半边约 1.48，层动画途经 45° 边视图时投影半径上限 ≈ 1.48√2 ≈ 2.09。
+    // 水平方向留少量边距；竖直方向多留一些，避开顶部提示与底部操作栏。
+    const distH = 2.3 / (halfTan * aspect);
+    const distV = 2.88 / halfTan; // 桌面宽屏下≈7.5，保持原有体量
+    return Math.max(distH, distV);
+  }
+
+  /** 把相机放到自适应距离 × 用户缩放倍率处（始终在 +Z 轴上）。 */
+  private applyFitDistance(): void {
+    this.camera.position.set(0, 0, this.computeFitDistance() * this.userZoom);
+  }
+
+  /**
+   * 让魔方在屏幕上垂直居中于"顶部提示条"与"底部操作栏"之间的可用区域。
+   * 通过平移魔方根节点（不旋转、不动相机）实现；地面随之平移以保留阴影。
+   */
+  private applyVerticalCentering(): void {
+    if (!this.viewTarget) return;
+    const parent = this.renderer.domElement.parentElement;
+    if (!parent) return;
+    const h = parent.clientHeight;
+    if (h <= 0) return;
+    const hint = document.querySelector('.hint') as HTMLElement | null;
+    const bar = document.getElementById('bar');
+    const hintBottom = hint ? hint.getBoundingClientRect().bottom : 0;
+    const barTop = bar ? bar.getBoundingClientRect().top : h;
+    const usableCenterY = (hintBottom + barTop) / 2;
+    // 上下左右翻转箭头围绕魔方中心：把 #face-nav 的上下边界对齐到可用区域，
+    // 其内部 top:50% 即落在可用区域中心（与魔方一致）。
+    const nav = document.getElementById('face-nav');
+    if (nav) {
+      nav.style.top = hintBottom + 'px';
+      nav.style.bottom = h - barTop + 'px';
+    }
+    const d = this.computeFitDistance() * this.userZoom;
+    const targetNdcY = 1 - (2 * usableCenterY) / h;
+    const halfTan = Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2);
+    const worldY = targetNdcY * halfTan * d;
+    this.viewTarget.position.y = worldY;
+    if (this.ground) this.ground.position.y = -2.1 + worldY;
+  }
 
   private start(): void {
     const loop = () => {

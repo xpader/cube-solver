@@ -111,7 +111,8 @@ button.primary:hover:not(:disabled) {
   inset: 0;
   pointer-events: none;
   z-index: 9;
-  /* 按钮距屏幕（魔方）中心的半径：随视口自适应，均匀贴近魔方外围 */
+  /* 按钮距魔方中心的半径：随视口自适应，均匀贴近魔方外围。
+     上下边界由 JS（applyVerticalCentering）对齐到可用区域，箭头随魔方中心移动。 */
   --R: clamp(150px, min(40vh, 46vw), 440px);
 }
 
@@ -378,22 +379,69 @@ button.primary:hover:not(:disabled) {
 }
 
 @media (max-width: 720px) {
-  .bar-brand .brand-text {
+  /* 底部操作栏改为纵向两行：调色板/引导信息在上，按钮组在下，避免挤压重叠 */
+  #bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    padding: 10px 12px;
+  }
+  /* 移动端隐藏品牌区，把空间让给操作 */
+  .bar-brand {
     display: none;
   }
   .bar-section {
     flex-wrap: wrap;
+    gap: 8px 12px;
   }
-  .bar-actions {
-    margin-left: 0;
-    flex-wrap: wrap;
+  /* 录入态：调色板独占第一行 */
+  .palette {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+  .palette .swatch {
+    width: 34px;
+    height: 34px;
+  }
+  /* 状态文字已由按钮体现，移动端隐藏以省空间 */
+  .status {
+    display: none;
+  }
+  /* 引导态：步信息独占第一行 */
+  .guide-info {
+    flex: 1 1 100%;
+    justify-content: space-between;
   }
   .guide-move {
-    font-size: 22px;
+    font-size: 24px;
+  }
+  /* 按钮组独占一行，三个按钮均分宽度 */
+  .bar-actions {
+    flex: 1 1 100%;
+    margin-left: 0;
+    width: 100%;
+  }
+  .bar-actions button {
+    flex: 1 1 0;
+    padding: 9px 6px;
+    font-size: 14px;
   }
   .face-btn {
     width: 40px;
     height: 40px;
     font-size: 14px;
+  }
+  /* 顶部提示：几乎占满宽度，减少换行 */
+  .hint {
+    left: 8px;
+    right: 8px;
+    transform: none;
+    max-width: none;
+    top: 8px;
+    font-size: 12px;
+    padding: 6px 10px;
   }
 }

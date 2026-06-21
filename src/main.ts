@@ -150,7 +150,7 @@ btnReset.addEventListener('click', () => {
   cube.blank();
   painter.recompute();
   updateButtons();
-  setHint('已清空。选中顶部颜色，点击魔方贴纸上色（右键擦除）。');
+  setHint('已清空。选中底部颜色，点魔方贴纸上色（右键擦除）。');
 });
 
 // 打乱（演示）：先设为已解配色，再随机转动
@@ -425,4 +425,4 @@ function delay(ms: number): Promise<void> {
 // 初始化
 hideOverlay();
 updateButtons();
-setHint('选中顶部颜色，点击魔方贴纸上色（右键擦除）。用上/下/左/右箭头旋转查看各面。');
+setHint('选中底部颜色，点魔方贴纸上色（右键擦除）；方向箭头旋转视角。');
