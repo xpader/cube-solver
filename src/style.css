@@ -213,25 +213,6 @@ button.primary:hover:not(:disabled) {
   text-decoration: underline;
 }
 
-/* 署名链接 */
-.credit {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 2px;
-  text-align: center;
-  font-size: 11px;
-  color: var(--text-dim);
-  text-decoration: none;
-  transition: color 0.15s;
-  z-index: 11;
-}
-
-.credit:hover {
-  color: var(--accent-2);
-  text-decoration: underline;
-}
-
 .bar-section {
   display: flex;
   align-items: center;
