@@ -7,23 +7,35 @@ export class StickerPainter {
   private el: HTMLElement;
   private selectedColorId = 0;
   private enabled = false;
+  private eraseMode = false; // 橡皮擦模式：点击贴纸时移除颜色（变灰），供无右键的移动端使用
   private placed: number[] = new Array(PALETTE.length).fill(0);
 
   private onChangeCb: (() => void) | null = null;
   private onWarnCb: ((msg: string) => void) | null = null;
 
   private swatches: { el: HTMLElement; badge: HTMLElement; id: number }[] = [];
+  private eraserEl: HTMLElement | null = null;
 
   constructor(cube: RubiksCube, container: HTMLElement) {
     this.cube = cube;
     this.el = container;
     this.render();
-    this.recompute();
   }
 
   private render(): void {
     this.el.innerHTML = '';
-    this.swatches = PALETTE.map((c) => {
+    this.swatches = [];
+
+    // 橡皮擦（移除颜色）：放在最左侧。无右键的移动端用它擦除贴纸颜色。
+    const eraser = document.createElement('div');
+    eraser.className = 'swatch swatch-eraser';
+    eraser.title = '橡皮擦：点此后再点贴纸即可移除颜色';
+    eraser.innerHTML = '<span class="eraser-icon"></span>';
+    this.eraserEl = eraser;
+    eraser.addEventListener('click', () => this.toggleErase());
+    this.el.appendChild(eraser);
+
+    for (const c of PALETTE) {
       const wrap = document.createElement('div');
       wrap.className = 'swatch';
       wrap.style.background = `#${c.hex.toString(16).padStart(6, '0')}`;
@@ -33,8 +45,8 @@ export class StickerPainter {
       wrap.appendChild(badge);
       wrap.addEventListener('click', () => this.select(c.id));
       this.el.appendChild(wrap);
-      return { el: wrap, badge, id: c.id };
-    });
+      this.swatches.push({ el: wrap, badge, id: c.id });
+    }
     this.updateUI();
   }
 
@@ -57,8 +69,19 @@ export class StickerPainter {
       const rem = this.remaining(s.id);
       s.badge.textContent = String(rem);
       s.el.classList.toggle('depleted', rem <= 0);
-      s.el.classList.toggle('selected', s.id === this.selectedColorId);
+      s.el.classList.toggle('selected', !this.eraseMode && s.id === this.selectedColorId);
     }
+    if (this.eraserEl) this.eraserEl.classList.toggle('selected', this.eraseMode);
+  }
+
+  /** 切换橡皮擦模式：开启后点击贴纸即移除颜色（变灰）。 */
+  toggleErase(): void {
+    this.eraseMode = !this.eraseMode;
+    this.updateUI();
+  }
+
+  isErasing(): boolean {
+    return this.eraseMode;
   }
 
   select(colorId: number): void {
@@ -67,6 +90,7 @@ export class StickerPainter {
       return;
     }
     this.selectedColorId = colorId;
+    this.eraseMode = false; // 选颜色即退出橡皮擦模式
     this.updateUI();
   }
 
@@ -95,11 +119,13 @@ export class StickerPainter {
     return this.getGrayCount() === 0;
   }
 
-  /** 命中贴纸时尝试涂色（仅在启用时）。 */
+  /** 命中贴纸：橡皮擦模式下移除颜色（变灰），否则按选中色涂色（仅在启用时）。 */
   tryPaint(stickerObj: THREE.Object3D | null): boolean {
     if (!this.enabled || !stickerObj) return false;
     const sticker = stickerObj.userData.sticker as Sticker | undefined;
     if (!sticker) return false;
+
+    if (this.eraseMode) return this.tryRemove(stickerObj);
 
     const newColor = this.selectedColorId;
     const oldColor = sticker.colorId;

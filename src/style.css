@@ -323,6 +323,54 @@ button.primary:hover:not(:disabled) {
   background: rgba(80, 85, 95, 0.92);
 }
 
+/* 橡皮擦色块：禁止圆样式（🚫），放在调色板最左侧，供移动端擦除颜色 */
+.palette .swatch-eraser {
+  background: rgba(50, 55, 66, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.palette .swatch-eraser .eraser-icon {
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  border: 2px solid var(--text-dim);
+  position: relative;
+}
+/* 对角斜线（禁止符） */
+.palette .swatch-eraser .eraser-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+ border-radius: 50%;
+ background: linear-gradient(
+  to top right,
+  transparent calc(50% - 1.4px),
+  var(--text-dim) calc(50% - 1.4px),
+  var(--text-dim) calc(50% + 1.4px),
+  transparent calc(50% + 1.4px)
+ );
+}
+
+/* 激活态：边框与图标变红高亮 */
+.palette .swatch.swatch-eraser.selected {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.4);
+}
+.palette .swatch-eraser.selected .eraser-icon {
+  border-color: var(--danger);
+}
+.palette .swatch-eraser.selected .eraser-icon::after {
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 1.4px),
+    var(--danger) calc(50% - 1.4px),
+    var(--danger) calc(50% + 1.4px),
+    transparent calc(50% + 1.4px)
+  );
+}
+
 /* 完成时的彩带喷发 */
 #confetti {
   position: absolute;
@@ -378,6 +426,175 @@ button.primary:hover:not(:disabled) {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* 使用引导（Coach Mark）：聚光灯遮罩 + 气泡 */
+.coach-root {
+  position: absolute;
+  inset: 0;
+  z-index: 25; /* 高于 hint(12)/bar(11)/face-nav(9)，低于 confetti(30) */
+  pointer-events: none;
+}
+
+.coach-mask {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+/* 聚光灯高亮环：绕在挖洞外的脉冲虚框 */
+.coach-ring {
+  position: absolute;
+  border-radius: 12px;
+  border: 2px solid rgba(106, 160, 255, 0.9);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0); /* 占位，与 mask 叠加 */
+  pointer-events: none;
+  animation: coach-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes coach-pulse {
+  0%, 100% {
+    border-color: rgba(106, 160, 255, 0.55);
+    box-shadow: 0 0 18px 2px rgba(106, 160, 255, 0.35);
+  }
+  50% {
+    border-color: rgba(106, 160, 255, 0.95);
+    box-shadow: 0 0 26px 6px rgba(106, 160, 255, 0.55);
+  }
+}
+
+.coach-tip {
+  position: absolute;
+  max-width: min(280px, 84vw);
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 12px 14px 12px;
+  color: var(--text);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  animation: coach-pop 0.18s ease-out;
+}
+
+@keyframes coach-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.coach-text {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.coach-text b {
+  color: var(--accent-2);
+}
+
+.coach-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.coach-actions button {
+  padding: 5px 14px;
+  font-size: 13px;
+  margin-left: auto;
+}
+
+.coach-skip {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.coach-skip:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+/* 气泡箭头：纯边框三角形，类名 = 箭头指向（朝向目标）。
+   提示在目标上方→箭头在底边、向下指；提示在目标下方→箭头在顶边、向上指；左右同理。
+   外层用稍深边框色描边，::after 用同色填充盖住内侧形成细描边。 */
+.coach-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+/* 箭头指向下方（提示在目标上方）：位于气泡底边 */
+.coach-arrow.down {
+  bottom: -9px;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 9px solid rgba(255, 255, 255, 0.14);
+}
+.coach-arrow.down::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -8px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid var(--panel);
+}
+/* 箭头指向上方（提示在目标下方）：位于气泡顶边 */
+.coach-arrow.up {
+  top: -9px;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 9px solid rgba(255, 255, 255, 0.14);
+}
+.coach-arrow.up::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: -8px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid var(--panel);
+}
+/* 箭头指向右方（提示在目标左侧）：位于气泡右边 */
+.coach-arrow.right {
+  right: -9px;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  border-left: 9px solid rgba(255, 255, 255, 0.14);
+}
+.coach-arrow.right::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: -8px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid var(--panel);
+}
+/* 箭头指向左方（提示在目标右侧）：位于气泡左边 */
+.coach-arrow.left {
+  left: -9px;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  border-right: 9px solid rgba(255, 255, 255, 0.14);
+}
+.coach-arrow.left::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  top: -8px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid var(--panel);
 }
 
 @media (max-width: 720px) {

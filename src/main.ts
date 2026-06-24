@@ -2,6 +2,7 @@ import './style.css';
 import { CubeScene, StepDir } from './cube/CubeScene';
 import { RubiksCube } from './cube/RubiksCube';
 import { StickerPainter } from './input/StickerPainter';
+import { CoachMark, type CoachStep } from './input/CoachMark';
 import { initSolver, solveCube, onSolverError } from './solver/solve';
 import { validateFacelets } from './solver/validate';
 import {
@@ -54,6 +55,51 @@ const cube = new RubiksCube(); // 初始：全部灰色
 scene.add(cube.root);
 scene.setPickables(cube.stickerMeshes);
 scene.setViewTarget(cube.root);
+
+// 使用引导（Coach Mark）
+const appEl = document.getElementById('app')!;
+const coach = new CoachMark(appEl);
+const faceNav = $('face-nav');
+const INPUT_TOUR_KEY = 'cube-input-tour-seen';
+const SOLVE_TOUR_KEY = 'cube-solve-tour-seen';
+
+/** 录入阶段引导：提示选颜色 → 点箭头换面。 */
+function startInputTour(): void {
+  const firstSwatch = paletteEl.querySelector<HTMLElement>('.swatch');
+  const steps: CoachStep[] = [
+    {
+      target: firstSwatch ?? paletteEl,
+      text: '先在这里<b>点选一种颜色</b>，再点击魔方贴纸上色。选最左侧的<b>橡皮擦</b>可移除颜色（桌面端也可右键擦除）。',
+      placement: 'top',
+      button: '下一步',
+    },
+    {
+      target: faceNav.querySelector<HTMLElement>('.fr') ?? faceNav,
+      text: '用<b>上/下/左/右箭头</b>旋转视角，查看并涂满六个面。',
+      placement: 'left',
+      button: '开始录入',
+    },
+  ];
+  coach.show(steps, () => {
+    try { localStorage.setItem(INPUT_TOUR_KEY, '1'); } catch { /* ignore */ }
+  });
+}
+
+/** 解题引导阶段：提示点「下一步」跟随演示。 */
+function startSolveTour(): void {
+  const steps: CoachStep[] = [
+    {
+      target: btnNext,
+      text: '点「<b>下一步</b>」逐步还原魔方——魔方会自动转到对应面并演示这一步的转动。也可点「自动」连续播放。',
+      placement: 'top',
+      button: '明白',
+      advanceOnTargetClick: true,
+    },
+  ];
+  coach.show(steps, () => {
+    try { localStorage.setItem(SOLVE_TOUR_KEY, '1'); } catch { /* ignore */ }
+  });
+}
 
 // 视角按钮：pointerdown 即触发（避免慢按/触屏长按导致 click 丢失），click 作键盘兜底并去重
 function bindPress(btn: HTMLElement, action: () => void): void {
@@ -163,7 +209,7 @@ btnReset.addEventListener('click', () => {
   cube.blank();
   painter.recompute();
   updateButtons();
-  setHint('已清空。选中底部颜色，点魔方贴纸上色（右键擦除）。');
+  setHint('已清空。选中底部颜色，点魔方贴纸上色；选橡皮擦可移除颜色。');
 });
 
 // 打乱（演示）：先设为已解配色，再随机转动
@@ -196,6 +242,7 @@ btnScramble.addEventListener('click', async () => {
 // 解魔方
 btnSolve.addEventListener('click', async () => {
   if (busy) return;
+  coach.cancel();
   if (!painter.isComplete()) {
     setHint(`还有 ${painter.getGrayCount()} 个贴纸未涂色，无法求解。`, true);
     return;
@@ -237,6 +284,9 @@ function enterGuide(parsed: ParsedMove[]): void {
   painter.setEnabled(false); // 引导中禁用涂色
   updateGuideDisplay();
   setHint('按提示一步步转动。可点「下一步」或「自动」播放，「上一步」回退。');
+  let seen = false;
+  try { seen = localStorage.getItem(SOLVE_TOUR_KEY) === '1'; } catch { /* ignore */ }
+  if (!seen) startSolveTour();
 }
 
 function exitGuide(): void {
@@ -250,6 +300,7 @@ function exitGuide(): void {
   barGuide.hidden = true;
   barIdle.hidden = false;
   painter.setEnabled(true); // 退出引导，恢复涂色
+  coach.cancel();
   clearConfetti(); // 清除残留彩带，恢复初始
   solvedFlashed = false;
 }
@@ -438,4 +489,10 @@ function delay(ms: number): Promise<void> {
 // 初始化
 hideOverlay();
 updateButtons();
-setHint('选中底部颜色，点魔方贴纸上色（右键擦除）；方向箭头旋转视角。');
+setHint('选中底部颜色，点魔方贴纸上色；选最左侧橡皮擦可移除颜色，方向箭头旋转视角。');
+let inputTourSeen = false;
+try { inputTourSeen = localStorage.getItem(INPUT_TOUR_KEY) === '1'; } catch { /* ignore */ }
+if (!inputTourSeen) {
+  // 等调色板/箭头完成首次布局后再启动引导，确保能命中元素的几何位置
+  requestAnimationFrame(() => startInputTour());
+}

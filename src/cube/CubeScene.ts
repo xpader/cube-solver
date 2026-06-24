@@ -233,6 +233,8 @@ export class CubeScene {
     el.style.touchAction = 'none';
 
     el.addEventListener('pointerdown', (e) => {
+      // 仅左键开始「点击」追踪；右键交给 contextmenu 做擦除，避免右键 pointerup 误触涂色
+      if (e.button !== 0) return;
       this.pointerDown = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false };
     });
 
@@ -247,7 +249,7 @@ export class CubeScene {
       const moved = this.pointerDown.moved;
       const dt = performance.now() - this.pointerDown.t;
       this.pointerDown.t = 0;
-      if (moved || dt > 400) return;
+      if (e.button !== 0 || moved || dt > 400) return; // 仅左键、且非拖拽/长按才涂色
       if (this.onPick) this.onPick(this.pickObject(e.clientX, e.clientY));
     };
     el.addEventListener('pointerup', endDrag);
